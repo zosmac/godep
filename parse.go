@@ -17,12 +17,14 @@ var (
 		"testdata": {},
 	}
 
-	// fileSet to keep track of all the parsing.
+	// fileSet keeps track of all the parsing.
 	fileSet = token.NewFileSet()
 
+	// parseDirs records that a directory has been parsed.
 	parsedDirs = map[string]struct{}{}
 )
 
+// parse invokes the go parser and walks the AST.
 func parse(dir string) {
 	if _, ok := parsedDirs[dir]; ok {
 		return

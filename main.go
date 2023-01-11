@@ -31,15 +31,13 @@ func main() {
 		}
 	}
 
-	typsets()
-
 	defs4refs()
+
+	typesets()
 
 	report()
 
-	graph := nodegraph(refs)
-
-	os.Stdout.Write(dot(graph))
+	os.Stdout.Write(dot(nodegraph(refs)))
 }
 
 // walk the directory tree and parse the go files.
@@ -125,26 +123,39 @@ func defs4refs() {
 	}
 }
 
-// dot calls the Graphviz dot command to render the process NodeGraph as gzipped SVG.
-func dot(graphviz string) []byte {
-	cmd := exec.Command("dot", "-v", "-Tsvgz")
-	cmd.Stdin = bytes.NewBufferString(graphviz)
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		core.LogError(fmt.Errorf("dot command failed %w\n%s", err, stderr.Bytes()))
-		sc := bufio.NewScanner(strings.NewReader(graphviz))
-		for i := 1; sc.Scan(); i++ {
-			fmt.Fprintf(os.Stderr, "%4.d %s\n", i, sc.Text())
+// typesets finds the interfaces that types implement.
+func typesets() {
+	// expand embedded interfaces with their methods
+	for ifc, mths := range ifcs {
+		for mth := range mths {
+			if !strings.Contains(mth, "(") {
+				// embedded interface, replace with its methods
+				delete(mths, mth)
+				for m := range ifcs[mth] {
+					ifcs[ifc][m] = tree{}
+				}
+			}
 		}
-		return nil
 	}
 
-	return stdout.Bytes()
+	// for each type, check if it implements the methods of an interface
+	for typ, flds := range typs {
+		for ifc, mths := range ifcs {
+			i := 0
+			for mth := range mths {
+				if _, ok := flds[mth]; !ok {
+					break
+				}
+				i++
+			}
+			if i == len(mths) {
+				add(sets, ifc, typ)
+			}
+		}
+	}
 }
 
+// report echos out all of the trees to stderr.
 func report() {
 	fmt.Fprintln(os.Stderr, "==== IMPORTS ====")
 	traverse(imps, 0, func(indent int, s string) {
@@ -184,35 +195,22 @@ func report() {
 	})
 }
 
-// typsets finds all types with method sets complying with interfaces.
-func typsets() {
-	for ifc, mths := range ifcs {
-		for mth := range mths {
-			if !strings.Contains(mth, "(") {
-				// embedded interface, replace with its methods
-				delete(mths, mth)
-				for m := range ifcs[mth] {
-					ifcs[ifc][m] = tree{}
-				}
-			}
+// dot calls the Graphviz dot command to render the process NodeGraph as gzipped SVG.
+func dot(graphviz string) []byte {
+	cmd := exec.Command("dot", "-v", "-Tsvgz")
+	cmd.Stdin = bytes.NewBufferString(graphviz)
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		core.LogError(fmt.Errorf("dot command failed %w\n%s", err, stderr.Bytes()))
+		sc := bufio.NewScanner(strings.NewReader(graphviz))
+		for i := 1; sc.Scan(); i++ {
+			fmt.Fprintf(os.Stderr, "%4.d %s\n", i, sc.Text())
 		}
+		return nil
 	}
 
-	for typ, flds := range typs {
-		for ifc, mths := range ifcs {
-			i := 0
-			for mth := range mths {
-				if _, ok := flds[mth]; !ok {
-					break
-				}
-				i++
-			}
-			if i == len(mths) {
-				if _, ok := sets[ifc]; !ok {
-					sets[ifc] = tree{}
-				}
-				sets[ifc][typ] = tree{}
-			}
-		}
-	}
+	return stdout.Bytes()
 }

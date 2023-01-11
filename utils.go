@@ -8,11 +8,24 @@ import (
 )
 
 type (
+	// t is the generic type for a tree.
 	t[T ~string] map[T]t[T]
 
+	// tree is a tree of strings.
 	tree = t[string]
 )
 
+// add inserts a node into a tree.
+func add[T ~string](tree t[T], nodes ...T) {
+	if len(nodes) > 0 {
+		if _, ok := tree[nodes[0]]; !ok {
+			tree[nodes[0]] = t[T]{}
+		}
+		add(tree[nodes[0]], nodes[1:]...)
+	}
+}
+
+// sortkeys sorts the keys for the top nodes of a tree and returns a slice of the keys.
 func sortkeys[T ~string](tree t[T]) []T {
 	keys := make([]T, len(tree))
 	i := 0
@@ -35,6 +48,7 @@ func sortkeys[T ~string](tree t[T]) []T {
 	return keys
 }
 
+// sortvals sorts the keys for the top nodes of a tree and returns a slice of the corresponding values.
 func sortvals[T ~string](tree t[T]) []t[T] {
 	keys := sortkeys(tree)
 	vals := make([]t[T], len(keys))
@@ -45,6 +59,7 @@ func sortvals[T ~string](tree t[T]) []t[T] {
 	return vals
 }
 
+// traverse walks the tree and invokes function fn for each node.
 func traverse[T ~string](tree t[T], indent int, fn func(indent int, s T)) {
 	for _, u := range sortkeys(tree) {
 		v := tree[u]
@@ -53,6 +68,7 @@ func traverse[T ~string](tree t[T], indent int, fn func(indent int, s T)) {
 	}
 }
 
+// subdir acts like filepath.Rel() but returns an error if the target path is not on the base path.
 func subdir(base, targ string) (string, error) {
 	if rel, err := filepath.Rel(base, targ); err != nil {
 		return "", err

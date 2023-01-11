@@ -17,6 +17,7 @@ var (
 	// the top-level subgraphs.
 	standard, module, imports, vendor = "std", gomod, "import", "vendor"
 
+	// dirmap maps the source directory paths to their subgraphs.
 	dirmap = map[string]string{
 		dirstd:  standard,
 		dirimps: imports,
