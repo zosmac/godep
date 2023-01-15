@@ -45,9 +45,10 @@ var (
 	gomod, dirmod = func() (string, string) {
 		cmd := exec.Command("go", "list", "-m", "-f", "{{.Path}}\n{{.Dir}}")
 		if out, err := cmd.Output(); err == nil {
-			if b, a, ok := strings.Cut(string(out), "\n"); ok && b != "" {
-				a, _, _ := strings.Cut(a, "@")
-				return strings.TrimSpace(b), strings.TrimSpace(a)
+			mod, dir, _ := strings.Cut(string(out), "\n")
+			dir, _, _ = strings.Cut(dir, "@")
+			if mod != "" && dir != "" {
+				return strings.TrimSpace(mod), strings.TrimSpace(dir)
 			}
 		}
 		panic(fmt.Sprintf("no go.mod found from current directory %q", cwd))
