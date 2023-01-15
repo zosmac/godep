@@ -31,4 +31,4 @@ The `gonode` command takes no arguments. Set the current directory to that for a
 file=`mktemp /tmp/XXXXXX`.svg; gonode | gunzip -c >$file ; open $file
 ```
 
-[*Gomon* module package dependency graph](assets/gomon.svg)
+<img src="assets/gomon.svg">
