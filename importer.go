@@ -20,12 +20,6 @@ func (imp *importr) Import(pth string) (*types.Package, error) {
 }
 
 func (imp *importr) ImportFrom(pth, from string, mode types.ImportMode) (*types.Package, error) {
-	fmt.Fprintf(os.Stderr, "PACKAGE: %s IMPORTED FROM: %s\n", pth, from)
-
-	// if _, err := subdir(dirmod, from); err != nil {
-	// 	return nil, fmt.Errorf("skip import of package %s from directory %s", pth, from)
-	// }
-
 	for skip := range skipdirs {
 		if strings.Contains(pth, skip) {
 			return nil, fmt.Errorf("skip import of package %s with %s in path", pth, skip)
@@ -45,7 +39,6 @@ func (imp *importr) ImportFrom(pth, from string, mode types.ImportMode) (*types.
 	}
 
 	if _, ok := tpkgs[dir]; !ok {
-		fmt.Fprintf(os.Stderr, "IMPORT DIR: %s PKG PATH: %s\n", dir, pth)
 		parse(dir)
 	}
 

@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
-	"os"
 	"strings"
 )
 
@@ -46,14 +44,11 @@ func parse(dir string) {
 		parser.ParseComments, // read comments for go:build constraints
 	)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "=================== Parse Dir:", dir, err)
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "=================== Parse Dir:", dir, pkgs)
-
 	for _, pkg := range pkgs {
-		if len(pkgs) > 1 && (strings.HasSuffix(pkg.Name, "_test") || pkg.Name == "main") {
+		if strings.HasSuffix(pkg.Name, "_test") || len(pkgs) > 1 && pkg.Name == "main" {
 			// skip embedded non-API packages
 			continue
 		}

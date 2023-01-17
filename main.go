@@ -55,7 +55,6 @@ func walk(pth string) error {
 			if entry.IsDir() {
 				base := path.Base(entry.Name())
 				if _, ok := skipdirs[base]; ok || base[0] == '.' {
-					fmt.Fprintf(os.Stderr, "SKIP DIR!! %s\n", dir)
 					return filepath.SkipDir
 				}
 				parse(dir)

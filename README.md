@@ -28,7 +28,13 @@ go install github.com/zosmac/gonode@latest
 
 The `gonode` command takes no arguments. Set the current directory to that for a Go language module, defined by a `go.mod` file. Direct the standard output to a compressed SVG file and open in a browser.
 ```zsh
-file=`mktemp /tmp/XXXXXX`.svg; gonode | gunzip -c >$file ; open $file
+() {
+  gonode | gunzip -c >$1
+  mv $1 $1.svg
+  open $1.svg
+  sleep 1
+  rm $1.svg
+} `mktemp /tmp/XXXXXX`
 ```
 
 <img src="assets/gomon.svg">
