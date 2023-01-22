@@ -194,9 +194,9 @@ func report() {
 	})
 }
 
-// dot calls the Graphviz dot command to render the process NodeGraph as gzipped SVG.
+// dot calls the Graphviz dot command to render the package dependencies as SVG.
 func dot(graphviz string) []byte {
-	cmd := exec.Command("dot", "-v", "-Tsvgz")
+	cmd := exec.Command("dot", "-v", "-Tsvg")
 	cmd.Stdin = bytes.NewBufferString(graphviz)
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
