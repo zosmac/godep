@@ -7,9 +7,10 @@ import (
 	"go/build/constraint"
 	"go/types"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type TREE int
@@ -43,15 +44,14 @@ var (
 
 	// gomod, dirmod are the import path and directory location of the module.
 	gomod, dirmod = func() (string, string) {
-		cmd := exec.Command("go", "list", "-m", "-f", "{{.Path}}\n{{.Dir}}")
-		if out, err := cmd.Output(); err == nil {
-			mod, dir, _ := strings.Cut(string(out), "\n")
-			dir, _, _ = strings.Cut(dir, "@")
-			if mod != "" && dir != "" {
-				return strings.TrimSpace(mod), strings.TrimSpace(dir)
-			}
+		pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedModule, Dir: cwd})
+		module := pkgs[0].Module
+		mod := module.Path
+		dir := module.Dir
+		if err != nil || mod == "" || dir == "" {
+			panic(fmt.Sprintf("go.mod not resolved %q, %v", dir, err))
 		}
-		panic(fmt.Sprintf("no go.mod found from current directory %q", cwd))
+		return mod, dir
 	}()
 
 	// imps tree reports all imported packages.
