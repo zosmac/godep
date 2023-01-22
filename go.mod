@@ -1,4 +1,4 @@
-module github.com/zosma/godep
+module github.com/zosmac/godep
 
 go 1.19
 
