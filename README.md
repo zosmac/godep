@@ -1,17 +1,20 @@
-# Welcome to *Gonode*: *Go* module dependency *node* graphing.
+# Welcome to *Godep*: *Go* module package *dep*endency graph
 
-- [Welcome to *Gonode*: *Go* module dependency *node* graphing](#welcome-to-gonode-go-module-dependency-node-graphing)
+- [Welcome to *Godep*: *Go* module package dependency graph](#welcome-to-godep-go-module-package-dependency-graph)
 - [Overview](#overview)
-- [Installing *Gonode*](#installing-gonode)
-- [Using *Gonode*](#using-gonode)
+- [Installing *Godep*](#installing-godep)
+- [Using *Godep*](#using-godep)
 
-# Overview
+## Overview
 
-The `gonode` command parses the Go module in the current directory using the standard library's `go/ast` package. It builds a package dependency graph for the *[Graphviz]*(https://graphviz.org) `dot` command and produces a compressed SVG file for display.
+The `godep` command parses the Go module in the current directory using the standard library's `go/ast` package. It builds a package dependency graph for the *[Graphviz](<https://graphviz.org>)* `dot` command and produces a compressed SVG file for display.
 
-# Installing *Gonode*
+## Installing *Godep*
 
-The `gonode` command depends on *Graphviz*. To download and install *[Graphviz]*(https://graphviz.org/download/source/), select a stable release, download its tar file, and build and install it. (Note that `gonode` specifies `-Tsvgz` to the `dot` command. Ensure that the zlib development library is installed on your system, e.g. on Ubuntu `sudo apt install zlib1g-dev`, on Fedora `sudo yum install zlib devel`)
+The `godep` command depends on *Graphviz*. To download and install *[Graphviz](<https://graphviz.org/download/source/>)*, select a stable release, download its tar file, build, and install.
+
+*Note: `godep` specifies `-Tsvgz` to the `dot` command. Ensure that the zlib development library is installed on your system, e.g. on Ubuntu `sudo apt install zlib1g-dev`, on Fedora `sudo yum install zlib devel`.*
+
 ```zsh
 tar xzvf =(curl -L "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/7.0.6/graphviz-7.0.6.tar.gz")
 cd graphviz-7.0.6
@@ -19,17 +22,20 @@ cd graphviz-7.0.6
 make
 sudo make install
 ```
-With the `dot` command in place, download and install *Gonode*:
+
+With the `dot` command in place, download and install *Godep*:
+
 ```zsh
-go install github.com/zosmac/gonode@latest
+go install github.com/zosmac/godep@latest
 ```
 
-# Using *Gonode*
+## Using *Godep*
 
-The `gonode` command takes no arguments. Set the current directory to that for a Go language module, defined by a `go.mod` file. Direct the standard output to a compressed SVG file and open in a browser.
+The `godep` command takes no arguments. Set the current directory to that for a Go language module, defined by a `go.mod` file. Direct the standard output to a compressed SVG file, `gunzip` to an SVG file, and open in a browser.
+
 ```zsh
 () {
-  gonode | gunzip -c >$1
+  godep | gunzip -c >$1
   mv $1 $1.svg
   open $1.svg
   sleep 1
@@ -37,4 +43,4 @@ The `gonode` command takes no arguments. Set the current directory to that for a
 } `mktemp /tmp/XXXXXX`
 ```
 
-<img src="assets/gomon.svg">
+![gomon module package dependencies](assets/gomon.svg)
