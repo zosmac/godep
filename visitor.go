@@ -1,3 +1,5 @@
+// Copyright © 2023 The Gomon Project.
+
 package main
 
 import (
@@ -44,12 +46,18 @@ var (
 
 	// gomod, dirmod are the import path and directory location of the module.
 	gomod, dirmod = func() (string, string) {
+		if cwd == dirstd {
+			return standard, dirstd
+		}
 		pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedModule, Dir: cwd})
+		if err != nil {
+			panic(fmt.Errorf("packages.Load failed: %v", err))
+		}
 		module := pkgs[0].Module
 		mod := module.Path
 		dir := module.Dir
-		if err != nil || mod == "" || dir == "" {
-			panic(fmt.Sprintf("go.mod not resolved %q, %v", dir, err))
+		if mod == "" || dir == "" {
+			panic(fmt.Errorf("go.mod not resolved from %q", dir))
 		}
 		return mod, dir
 	}()
@@ -136,7 +144,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		*ast.TypeSwitchStmt:
 
 	case ast.Stmt: // put this last after all the explicit statement types
-		panic(fmt.Sprintf("unexpected stmt type %T %[1]s", node))
+		panic(fmt.Errorf("unexpected stmt type %T %[1]s", node))
 
 		// EXPRESSIONS
 
@@ -178,7 +186,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		addRef(v, types.ExprString(node.X), node.Sel)
 
 	case ast.Expr: // put this last after all the explicit expression types
-		panic(fmt.Sprintf("unexpected expr type %T %[1]s", node))
+		panic(fmt.Errorf("unexpected expr type %T %[1]s", node))
 
 		// SPECS
 
@@ -198,7 +206,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		addVal(v, node)
 
 	case ast.Spec:
-		panic(fmt.Sprintf("unexpected spec type %T %[1]s", node))
+		panic(fmt.Errorf("unexpected spec type %T %[1]s", node))
 
 		// NODES
 
@@ -222,7 +230,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		*ast.GenDecl:
 
 	default:
-		panic(fmt.Sprintf("unexpected node type %T %[1]s", node))
+		panic(fmt.Errorf("unexpected node type %T %[1]s", node))
 	}
 
 	return v
@@ -278,7 +286,7 @@ func addImp(node *ast.ImportSpec) {
 
 	// convert import path to local directory path
 	var abs string
-	if rel, err := subdir(gomod, pth); err == nil { // package in current module
+	if rel, err := subdir(dirmod, pth); err == nil { // package in current module
 		abs = path.Join(dirmod, rel)
 	} else if _, err := os.Stat(path.Join(dirstd, pth)); err == nil { // std package
 		abs = path.Join(dirstd, pth)

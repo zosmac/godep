@@ -1,10 +1,9 @@
 github.com/StackExchange/wmi v1.2.1 h1:VIkavFPXSjcnS+O8yTq7NI32k0R5Aj+v39y29VYDOSA=
 github.com/StackExchange/wmi v1.2.1/go.mod h1:rcmrprowKIVzvc+NUiLncP2uuArMWLCbu9SBzvHz7e8=
+github.com/go-ole/go-ole v1.2.5 h1:t4MGB5xEDZvXI+0rMjjsfBsD7yAgp/s9ZDkL1JndXwY=
 github.com/go-ole/go-ole v1.2.5/go.mod h1:pprOEPIfldk/42T2oK7lQ4v4JSDwmV0As9GaiUsvbm0=
-github.com/go-ole/go-ole v1.2.6 h1:/Fpf6oFPoeFik9ty7siob0G6Ke8QvQEuVcuChpwXzpY=
-github.com/go-ole/go-ole v1.2.6/go.mod h1:pprOEPIfldk/42T2oK7lQ4v4JSDwmV0As9GaiUsvbm0=
-github.com/zosmac/gomon v0.0.0-20230122223040-b03a89075161 h1:uZYA6MmFYGLTLS0KVUezZsx144XyuSY7ROaa/u3/7NM=
-github.com/zosmac/gomon v0.0.0-20230122223040-b03a89075161/go.mod h1:SL5NJd81089KeKqDEp/OnIhEl1oV2QE10jVaSGCofec=
+github.com/zosmac/gocore v0.0.0-20230130200637-452a33c7e6db h1:uMcLyK9DfOtgjOjuYkPtXNTpUNG3ENM5qx/yMw/Vl4A=
+github.com/zosmac/gocore v0.0.0-20230130200637-452a33c7e6db/go.mod h1:oiFSi9vvY/IC0NhduQ+2BaRw39bPrafNfUwFps+jAVU=
 golang.org/x/mod v0.7.0 h1:LapD9S96VoQRhi/GrNTqeBJFrUjs5UHCAtTlgwA5oZA=
 golang.org/x/mod v0.7.0/go.mod h1:iBbtSCu2XBx23ZKBPSOrRkjjQPZFPuis4dIYUhu/chs=
 golang.org/x/sync v0.1.0 h1:wsuoTGHzEhffawBOhz5CYhcrV4IdKZbEyZjBMuTp12o=

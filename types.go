@@ -1,3 +1,5 @@
+// Copyright © 2023 The Gomon Project.
+
 //go:build ignore
 
 package main

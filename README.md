@@ -4,6 +4,7 @@
 - [Overview](#overview)
 - [Installing *Godep*](#installing-godep)
 - [Using *Godep*](#using-godep)
+- [Notices](#notices)
 
 ## Overview
 
@@ -42,3 +43,7 @@ The `godep` command takes no arguments. Set the current directory to that for a 
 ```
 
 ![gomon module package dependencies](assets/gomon.svg)
+
+## Notices
+
+Copyright © 2023 The Gomon Project.

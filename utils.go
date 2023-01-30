@@ -1,3 +1,5 @@
+// Copyright © 2023 The Gomon Project.
+
 package main
 
 import (

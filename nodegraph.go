@@ -1,4 +1,4 @@
-// Copyright © 2021 The Gomon Project.
+// Copyright © 2023 The Gomon Project.
 
 package main
 
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zosmac/gomon/core"
+	"github.com/zosmac/gocore"
 )
 
 var (
@@ -92,7 +92,7 @@ func nodegraph(references tree) string {
 			buf := make([]byte, 4096)
 			n := runtime.Stack(buf, false)
 			buf = buf[:n]
-			core.LogError(fmt.Errorf("nodegraph() panicked, %v\n%s", r, buf))
+			gocore.LogError(fmt.Errorf("nodegraph() panicked, %v\n%s", r, buf))
 		}
 	}()
 

@@ -1,8 +1,11 @@
+// Copyright © 2023 The Gomon Project.
+
 package main
 
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,16 +15,22 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/zosmac/gomon/core"
+	"github.com/zosmac/gocore"
 )
 
 var (
 	cwd, _ = os.Getwd()
 )
 
+// main
 func main() {
+	gocore.Main(Main)
+}
+
+// Main called from gocore.Main.
+func Main(ctx context.Context) {
 	if err := walk(cwd); err != nil {
-		fmt.Fprintf(os.Stderr, "WalkDir %q failed %v\n", cwd, err)
+		gocore.LogError(fmt.Errorf("WalkDir %q failed %w", cwd, err))
 		return
 	}
 
@@ -38,6 +47,8 @@ func main() {
 	report()
 
 	os.Stdout.Write(dot(nodegraph(refs)))
+
+	os.Exit(0)
 }
 
 // walk the directory tree and parse the go files.
@@ -203,7 +214,7 @@ func dot(graphviz string) []byte {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		core.LogError(fmt.Errorf("dot command failed %w\n%s", err, stderr.Bytes()))
+		gocore.LogError(fmt.Errorf("dot command failed %w\n%s", err, stderr.Bytes()))
 		sc := bufio.NewScanner(strings.NewReader(graphviz))
 		for i := 1; sc.Scan(); i++ {
 			fmt.Fprintf(os.Stderr, "%4.d %s\n", i, sc.Text())
