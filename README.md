@@ -15,8 +15,8 @@ The `godep` command parses the Go module in the current directory using the stan
 The `godep` command depends on *Graphviz*. To download and install *[Graphviz](<https://graphviz.org/download/source/>)*, select a stable release, download its tar file, build, and install.
 
 ```zsh
-tar xzvf =(curl -L "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/7.0.6/graphviz-7.0.6.tar.gz")
-cd graphviz-7.0.6
+tar xzvf =(curl -L "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/7.1.0/graphviz-7.1.0.tar.gz")
+cd graphviz-7.1.0
 ./configure
 make
 sudo make install

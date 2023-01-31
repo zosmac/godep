@@ -60,8 +60,6 @@ func Main(ctx context.Context) {
 	report()
 
 	os.Stdout.Write(dot(nodegraph(refs)))
-
-	os.Exit(0)
 }
 
 // walk the directory tree and parse the go files.
