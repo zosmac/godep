@@ -11,8 +11,6 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"golang.org/x/tools/go/packages"
 )
 
 type TREE int
@@ -45,22 +43,7 @@ var (
 	dirimps = path.Join(build.Default.GOPATH, "pkg", "mod")
 
 	// gomod, dirmod are the import path and directory location of the module.
-	gomod, dirmod = func() (string, string) {
-		if cwd == dirstd {
-			return standard, dirstd
-		}
-		pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedModule, Dir: cwd})
-		if err != nil {
-			panic(fmt.Errorf("packages.Load failed: %v", err))
-		}
-		module := pkgs[0].Module
-		mod := module.Path
-		dir := module.Dir
-		if mod == "" || dir == "" {
-			panic(fmt.Errorf("go.mod not resolved from %q", dir))
-		}
-		return mod, dir
-	}()
+	gomod, dirmod string
 
 	// imps tree reports all imported packages.
 	imps = trees[IMPORTS]

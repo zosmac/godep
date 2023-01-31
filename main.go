@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	// cwd current working directory with module source.
 	cwd, _ = os.Getwd()
 )
 
@@ -29,6 +30,18 @@ func main() {
 
 // Main called from gocore.Main.
 func Main(ctx context.Context) {
+	if cwd == dirstd {
+		gomod, dirmod = standard, dirstd
+	} else {
+		module, err := gocore.Modules(cwd)
+		if err != nil {
+			gocore.LogError(fmt.Errorf("module undefined, no go.mod resolved from %s", cwd))
+			return
+		}
+		gomod = module.Path
+		dirmod = module.Dir
+	}
+
 	if err := walk(cwd); err != nil {
 		gocore.LogError(fmt.Errorf("WalkDir %q failed %w", cwd, err))
 		return
