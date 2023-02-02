@@ -8,5 +8,5 @@ import (
 
 // init initializes the command line flags.
 func init() {
-	gocore.Flags.CommandDescription = `The godep command roduces a Go package dependency graph for the current module.`
+	gocore.Flags.CommandDescription = `The godep command produces a Go package dependency graph for the current module.`
 }
