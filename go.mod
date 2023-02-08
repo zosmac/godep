@@ -2,8 +2,8 @@ module github.com/zosmac/godep
 
 go 1.20
 
-require github.com/zosmac/gocore v0.0.0-20230202190902-7e5934e8b51c
-
+require github.com/zosmac/gocore v0.0.0-unpublished
+replace github.com/zosmac/gocore v0.0.0-unpublished => ../gocore
 require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect

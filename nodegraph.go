@@ -15,7 +15,7 @@ import (
 
 var (
 	// the top-level subgraphs.
-	standard, module, imports, vendor = "std", gomod, "import", "vendor"
+	standard, imports, vendor = "std", "import", "vendor"
 
 	// dirmap maps the source directory paths to their subgraphs.
 	dirmap = map[string]string{
@@ -97,9 +97,9 @@ func nodegraph(references tree) string {
 	}()
 
 	if dirmod != dirstd {
-		dirmap[dirmod] = module
-		graphmap[module] = fmt.Sprintf(subgtmpl, 0x02, module, "lightgrey", gomod, "rank=same")
-		nodes[graphmap[module]] = tree{"\x7F\n}": tree{}}
+		dirmap[dirmod] = gomod
+		graphmap[gomod] = fmt.Sprintf(subgtmpl, 0x02, gomod, "lightgrey", gomod, "rank=same")
+		nodes[graphmap[gomod]] = tree{"\x7F\n}": tree{}}
 	}
 
 	for _, refs := range references {
@@ -233,7 +233,7 @@ func node(abs string) (byte, string, tree) {
 		}
 
 		if pkg = path.Join(pkg, base); pkg == "." {
-			pkg = tg // package == module
+			pkg = tg // package = module
 		}
 		node := tg + ": " + pkg
 

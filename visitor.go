@@ -13,7 +13,15 @@ import (
 	"strings"
 )
 
-type TREE int
+type (
+	// TREE is the enumberation type for information types parsed from packages.
+	TREE int
+
+	// visitor employed by the AST walk of the parse function.
+	visitor struct {
+		pkg *ast.Package
+	}
+)
 
 const (
 	IMPORTS TREE = iota
@@ -28,6 +36,7 @@ const (
 )
 
 var (
+	// trees creates a slice that anchors all of the information types parsed from packages.
 	trees = func() []tree {
 		ts := make([]tree, TREES)
 		for i := range ts {
@@ -72,11 +81,6 @@ var (
 	// sets tree reports interfaces with types whose method sets comply.
 	sets = trees[IMPLEMENTS]
 )
-
-// visitor employed by the AST walk of the parse function.
-type visitor struct {
-	pkg *ast.Package
-}
 
 // path determines the location of a node.
 func (v visitor) path(node ast.Node) string {

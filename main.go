@@ -33,8 +33,8 @@ func Main(ctx context.Context) {
 	if cwd == dirstd {
 		gomod, dirmod = standard, dirstd
 	} else {
-		module, err := gocore.Modules(cwd)
-		if err != nil {
+		module := gocore.Module(cwd)
+		if module.Dir == "" {
 			gocore.LogError(fmt.Errorf("module undefined, no go.mod resolved from %s", cwd))
 			return
 		}

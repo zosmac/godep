@@ -10,28 +10,25 @@ import (
 )
 
 type (
-	// t is the generic type for a tree.
-	t[T ~string] map[T]t[T]
-
-	// tree is a tree of strings.
-	tree = t[string]
+	// tree organizes inforamtion types parsed from packages.
+	tree map[string]tree
 )
 
 // add inserts a node into a tree.
-func add[T ~string](tree t[T], nodes ...T) {
+func add(tr tree, nodes ...string) {
 	if len(nodes) > 0 {
-		if _, ok := tree[nodes[0]]; !ok {
-			tree[nodes[0]] = t[T]{}
+		if _, ok := tr[nodes[0]]; !ok {
+			tr[nodes[0]] = tree{}
 		}
-		add(tree[nodes[0]], nodes[1:]...)
+		add(tr[nodes[0]], nodes[1:]...)
 	}
 }
 
 // sortkeys sorts the keys for the top nodes of a tree and returns a slice of the keys.
-func sortkeys[T ~string](tree t[T]) []T {
-	keys := make([]T, len(tree))
+func sortkeys(tr tree) []string {
+	keys := make([]string, len(tr))
 	i := 0
-	for key := range tree {
+	for key := range tr {
 		if key != "" {
 			keys[i] = key
 			i++
@@ -41,8 +38,8 @@ func sortkeys[T ~string](tree t[T]) []T {
 
 	sort.Slice(keys, func(i, j int) bool {
 		keyi, keyj := keys[i], keys[j]
-		keyi = T(strings.Trim(string(keyi), "*()"))
-		keyj = T(strings.Trim(string(keyj), "*()"))
+		keyi = strings.Trim(keyi, "*()")
+		keyj = strings.Trim(keyj, "*()")
 		return keyi < keyj ||
 			keyi == keyj && keys[i] < keys[j]
 	})
@@ -51,20 +48,20 @@ func sortkeys[T ~string](tree t[T]) []T {
 }
 
 // sortvals sorts the keys for the top nodes of a tree and returns a slice of the corresponding values.
-func sortvals[T ~string](tree t[T]) []t[T] {
-	keys := sortkeys(tree)
-	vals := make([]t[T], len(keys))
+func sortvals(tr tree) []tree {
+	keys := sortkeys(tr)
+	vals := make([]tree, len(keys))
 	for i, key := range keys {
-		vals[i] = tree[key]
+		vals[i] = tr[key]
 	}
 
 	return vals
 }
 
 // traverse walks the tree and invokes function fn for each node.
-func traverse[T ~string](tree t[T], indent int, fn func(indent int, s T)) {
-	for _, u := range sortkeys(tree) {
-		v := tree[u]
+func traverse(tr tree, indent int, fn func(indent int, s string)) {
+	for _, u := range sortkeys(tr) {
+		v := tr[u]
 		fn(indent, u)
 		traverse(v, indent+1, fn)
 	}
