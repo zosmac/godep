@@ -15,7 +15,7 @@ import (
 
 var (
 	// the top-level subgraphs.
-	standard, imports, vendor = "std", "import", "vendor"
+	standard, imports = "std", "import"
 
 	// dirmap maps the source directory paths to their subgraphs.
 	dirmap = map[string]string{
@@ -36,11 +36,12 @@ var (
 	// into the graphviz nodegraph.
 	nodetmpl = " \n%q [fillcolor=%q label=%q tooltip=\""
 
-	// graphmap maps standard, (module), imports, and vendor packages to the top graphvis subgraphs.
+	// graphmap maps standard, (module), and imports/vendor packages to the top graphvis subgraphs.
 	graphmap = map[string]string{
-		standard: fmt.Sprintf(subgtmpl, 0x01, standard, "lightgrey", "Go Standard Packages", "rank=source"),
-		imports:  fmt.Sprintf(subgtmpl, 0x03, imports, "lightgrey", "Imported Packages", "rank=sink"),
-		vendor:   fmt.Sprintf(subgtmpl, 0x04, vendor, "lightgrey", "Vendored Packages", "rank=sink"),
+		standard: fmt.Sprintf(subgtmpl, 0x01, standard, "lightgrey", "Go Standard Packages",
+			"rank=same\n\"Standard Packages\" [color=white fillcolor=white fontcolor=black]"),
+		imports: fmt.Sprintf(subgtmpl, 0x03, imports, "lightgrey", "Imported/Vendored Packages",
+			"rank=same\n\"Imported Packages\" [color=white fillcolor=white fontcolor=black]"),
 	}
 
 	// subgmap maps the 'branch' package paths to graphvis subgraph statements.
@@ -53,7 +54,6 @@ var (
 	nodes = tree{
 		graphmap[standard]: tree{"\x7F\n}": tree{}},
 		graphmap[imports]:  tree{"\x7F\n}": tree{}},
-		graphmap[vendor]:   tree{"\x7F\n}": tree{}},
 	}
 
 	// edges contains all the links between nodes.
@@ -92,13 +92,14 @@ func nodegraph(references tree) string {
 			buf := make([]byte, 4096)
 			n := runtime.Stack(buf, false)
 			buf = buf[:n]
-			gocore.LogError(fmt.Errorf("nodegraph() panicked, %v\n%s", r, buf))
+			gocore.LogError("nodegraph", fmt.Errorf("%v\n%s", r, buf))
 		}
 	}()
 
 	if dirmod != dirstd {
 		dirmap[dirmod] = gomod
-		graphmap[gomod] = fmt.Sprintf(subgtmpl, 0x02, gomod, "lightgrey", gomod, "rank=same")
+		graphmap[gomod] = fmt.Sprintf(subgtmpl, 0x02, gomod, "lightgrey", gomod,
+			"rank=same\n\""+gomod+"\" [color=white fillcolor=white fontcolor=black]")
 		nodes[graphmap[gomod]] = tree{"\x7F\n}": tree{}}
 	}
 
@@ -109,7 +110,7 @@ func nodegraph(references tree) string {
 			for dabs := range defs {
 				d, dnode, dtree := node(dabs)
 
-				if dnode == rnode || // ignore intra-node calls
+				if d == r && dnode == rnode || // ignore intra-node calls
 					dirmod != dirstd && d != 2 && r != 2 { // neither is in module
 					continue
 				}
@@ -120,24 +121,24 @@ func nodegraph(references tree) string {
 				dtree[" "+dnode+"\\n"] = tree{}
 
 				dir := "back"
-				if r < d ||
-					r == d && rnode < dnode {
+				tport, hport := "e", "w" // 'e', 'w' ONLY way to ensure edge on correct side
+				if d < r {
+				} else if d > r {
 					dir = "forward"
-					rnode, dnode = dnode, rnode
-				}
-				ports := "tailport=e headport=w" // 'e', 'w' ONLY way to ensure edge on correct side
-				if d == 1 && r == 1 {
-					ports = "tailport=w headport=w" // left side for standard's intra-cluster references
-				} else if d == r {
-					ports = "tailport=e headport=e" // right side for others' intra-cluster references
+					tport, hport = "w", "e"
+				} else if d == 1 {
+					tport, hport = "w", "w"
+				} else {
+					tport, hport = "e", "e"
 				}
 
 				edges[fmt.Sprintf(
-					"\n%q -> %q [%s dir=%s color=%q tooltip=\"%[1]s\\n%s\"]",
+					"\n%q -> %q [dir=%s tailport=%s headport=%s color=%q tooltip=\"%[1]s\\n%s\"]",
 					dnode,
 					rnode,
-					ports,
 					dir,
+					tport,
+					hport,
 					color(rnode)+";0.5:"+color(dnode),
 				)] = tree{}
 			}
@@ -167,6 +168,13 @@ func nodegraph(references tree) string {
 		graph += s[1:]
 	})
 
+	if dirmod == dirstd {
+		graph += "\"Standard Packages\" -> \"Imported Packages\" [style=invis ltail=1 lhead=3]\n"
+	} else {
+		graph += "\"Standard Packages\" -> \"" + gomod + "\" [style=invis ltail=1 lhead=2]\n"
+		graph += "\"" + gomod + "\" -> \"Imported Packages\" [style=invis ltail=2 lhead=3]\n"
+	}
+
 	traverse(edges, 0, func(indent int, s string) {
 		graph += s
 	})
@@ -188,9 +196,8 @@ func node(abs string) (byte, string, tree) {
 			continue // ...on to dirmod, which happens to be a subdirectory of dirimps
 		}
 
-		// treat vendor directory as vendored package path
-		if _, a, ok := strings.Cut(abs, "/"+vendor+"/"); ok {
-			tg = vendor
+		if _, a, ok := strings.Cut(abs, "/vendor/"); ok { // treat content of vendor as import
+			tg = imports
 			pkg = a
 		}
 

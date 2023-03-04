@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -29,22 +30,20 @@ func main() {
 }
 
 // Main called from gocore.Main.
-func Main(ctx context.Context) {
+func Main(ctx context.Context) error {
 	if cwd == dirstd {
 		gomod, dirmod = standard, dirstd
 	} else {
 		module := gocore.Module(cwd)
 		if module.Dir == "" {
-			gocore.LogError(fmt.Errorf("module undefined, no go.mod resolved from %s", cwd))
-			return
+			return gocore.Error("go.mod unresolved", errors.New(cwd))
 		}
 		gomod = module.Path
 		dirmod = module.Dir
 	}
 
 	if err := walk(cwd); err != nil {
-		gocore.LogError(fmt.Errorf("WalkDir %q failed %w", cwd, err))
-		return
+		return gocore.Error("WalkDir", fmt.Errorf("%q %w", cwd, err))
 	}
 
 	for _, imp := range sortvals(imps) {
@@ -60,6 +59,8 @@ func Main(ctx context.Context) {
 	report()
 
 	os.Stdout.Write(dot(nodegraph(refs)))
+
+	return nil
 }
 
 // walk the directory tree and parse the go files.
@@ -225,7 +226,7 @@ func dot(graphviz string) []byte {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		gocore.LogError(fmt.Errorf("dot command failed %w\n%s", err, stderr.Bytes()))
+		gocore.LogError("dot", fmt.Errorf("%w\n%s", err, stderr.Bytes()))
 		sc := bufio.NewScanner(strings.NewReader(graphviz))
 		for i := 1; sc.Scan(); i++ {
 			fmt.Fprintf(os.Stderr, "%4.d %s\n", i, sc.Text())
