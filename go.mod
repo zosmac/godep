@@ -2,7 +2,7 @@ module github.com/zosmac/godep
 
 go 1.20
 
-require github.com/zosmac/gocore v0.0.0-20230317153129-5654ba54c19e
+require github.com/zosmac/gocore v0.0.0-20230318144337-b5fc70d22566
 
 require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
