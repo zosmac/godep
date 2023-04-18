@@ -11,16 +11,24 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/zosmac/gocore"
 )
 
 type (
-	// TREE is the enumberation type for information types parsed from packages.
-	TREE int
-
 	// visitor employed by the AST walk of the parse function.
 	visitor struct {
 		pkg *ast.Package
 	}
+
+	// table maps tree nodes to their data.
+	table = gocore.Table[string, any]
+
+	// tree organizes information types parsed from packages.
+	tree = gocore.Tree[string, string, any]
+
+	// TREE is the enumberation type for information types parsed from packages.
+	TREE int
 )
 
 const (
@@ -36,15 +44,6 @@ const (
 )
 
 var (
-	// trees creates a slice that anchors all of the information types parsed from packages.
-	trees = func() []tree {
-		ts := make([]tree, TREES)
-		for i := range ts {
-			ts[i] = tree{}
-		}
-		return ts
-	}()
-
 	// dirstd is the location of the Go standard packages source.
 	dirstd = path.Join(build.Default.GOROOT, "src")
 
@@ -54,11 +53,20 @@ var (
 	// gomod, dirmod are the import path and directory location of the module.
 	gomod, dirmod string
 
-	// imps tree reports all imported packages.
-	imps = trees[IMPORTS]
-
 	// aliases map selection names used in a file to the imported package names.
 	aliases = map[string]string{} // alias:package
+
+	// trees creates a slice that anchors all of the information types parsed from packages.
+	trees = func() []tree {
+		ts := make([]tree, TREES)
+		for i := range ts {
+			ts[i] = tree{}
+		}
+		return ts
+	}()
+
+	// imps tree reports all imported packages.
+	imps = trees[IMPORTS]
 
 	// ifcs tree reports all interfaces.
 	ifcs = trees[INTERFACES]
@@ -107,7 +115,6 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 	switch node := node.(type) {
 
 	// STATEMENTS
-
 	case *ast.AssignStmt,
 		*ast.BadStmt,
 		*ast.BlockStmt,
@@ -133,22 +140,17 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 	case ast.Stmt: // put this last after all the explicit statement types
 		panic(fmt.Errorf("unexpected stmt type %T %[1]s", node))
 
-		// EXPRESSIONS
-
-		// IDENTITY EXPRESSION
-
+	// IDENTITY EXPRESSION
 	case *ast.Ident:
 		addRef(v, v.pkg.Name, node)
 
-		// LITERAL EXPRESSIONS
-
+	// LITERAL EXPRESSIONS
 	case *ast.BasicLit,
 		*ast.CompositeLit,
 		*ast.Ellipsis,
 		*ast.FuncLit:
 
-		// TYPE EXPRESSIONS
-
+	// TYPE EXPRESSIONS
 	case *ast.ArrayType,
 		*ast.ChanType,
 		*ast.FuncType,
@@ -157,7 +159,6 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		*ast.StructType:
 
 	// COMPLEX EXPRESSIONS
-
 	case *ast.BinaryExpr,
 		*ast.CallExpr,
 		*ast.IndexExpr,
@@ -175,15 +176,13 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 	case ast.Expr: // put this last after all the explicit expression types
 		panic(fmt.Errorf("unexpected expr type %T %[1]s", node))
 
-		// SPECS
-
+	// SPECS
 	case *ast.ImportSpec:
 		for skip := range skipdirs {
 			if strings.Contains(node.Path.Value, skip) {
 				return nil
 			}
 		}
-
 		addImp(node)
 
 	case *ast.TypeSpec:
@@ -195,8 +194,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 	case ast.Spec:
 		panic(fmt.Errorf("unexpected spec type %T %[1]s", node))
 
-		// NODES
-
+	// NODES
 	case *ast.Package:
 		for pth, file := range node.Files {
 			if !gobuild(pth, file) {
@@ -273,7 +271,7 @@ func addImp(node *ast.ImportSpec) {
 
 	// convert import path to local directory path
 	var abs string
-	if rel, err := subdir(dirmod, pth); err == nil { // package in current module
+	if rel, err := gocore.Subdir(dirmod, pth); err == nil { // package in current module
 		abs = path.Join(dirmod, rel)
 	} else if _, err := os.Stat(path.Join(dirstd, pth)); err == nil { // std package
 		abs = path.Join(dirstd, pth)
@@ -288,7 +286,7 @@ func addImp(node *ast.ImportSpec) {
 		alias = node.Name.Name
 	}
 	aliases[alias] = pkg
-	add(imps, pkg, abs)
+	imps.Add(pkg, abs)
 }
 
 // addTyp adds a type to the typs or ifcs list.
@@ -307,10 +305,10 @@ func addTyp(v visitor, node *ast.TypeSpec) {
 	case *ast.CompositeLit:
 		lit := types.ExprString(expr.Type)
 		for _, elt := range expr.Elts {
-			add(typs, name, lit, types.ExprString(elt))
+			typs.Add(name, lit, types.ExprString(elt))
 		}
 	default:
-		add(typs, name, types.ExprString(expr))
+		typs.Add(name, types.ExprString(expr))
 	}
 }
 
@@ -323,10 +321,10 @@ func addIfc(v visitor, name string, node *ast.InterfaceType) {
 			if !strings.Contains(dt, ".") && ast.IsExported(dt) {
 				dt = v.pkg.Name + "." + dt // interface is in this package
 			}
-			add(ifcs, name, dt)
+			ifcs.Add(name, dt)
 		} else {
 			for _, id := range mth.Names {
-				add(ifcs, name, id.Name+signature(mth.Type.(*ast.FuncType)))
+				ifcs.Add(name, id.Name+signature(mth.Type.(*ast.FuncType)))
 			}
 		}
 	}
@@ -353,7 +351,7 @@ func addStr(name string, node *ast.StructType) {
 			line += types.ExprString(expr)
 		}
 		if ast.IsExported(line) {
-			add(typs, name, line)
+			typs.Add(name, line)
 		}
 	}
 }
@@ -368,7 +366,7 @@ func addVal(v visitor, node *ast.ValueSpec) {
 
 		name := v.pkg.Name + "." + id.Name
 		for _, val := range node.Values {
-			add(vals, name, types.ExprString(val))
+			vals.Add(name, types.ExprString(val))
 		}
 	}
 }
@@ -381,23 +379,23 @@ func addFnc(v visitor, node *ast.FuncDecl) {
 	addDef(v, node.Name)
 
 	if node.Recv == nil || len(node.Recv.List) == 0 {
-		add(fncs, v.pkg.Name+"."+node.Name.Name+signature(node.Type))
+		fncs.Add(v.pkg.Name + "." + node.Name.Name + signature(node.Type))
 	} else {
 		expr := node.Recv.List[0].Type
 		if s, ok := expr.(*ast.StarExpr); ok {
 			expr = s.X
 		}
-		name := types.ExprString(expr) // methods key off reciever type
+		name := types.ExprString(expr) // methods key off receiver type
 		if !ast.IsExported(name) {
 			return
 		}
-		add(typs, v.pkg.Name+"."+name, node.Name.Name+signature(node.Type))
+		typs.Add(v.pkg.Name+"."+name, node.Name.Name+signature(node.Type))
 	}
 }
 
 // addDef adds the location where an identifier is defined.
 func addDef(v visitor, id *ast.Ident) {
-	add(defs, v.pkg.Name+"."+id.Name, v.path(id))
+	defs.Add(v.pkg.Name+"."+id.Name, v.path(id))
 }
 
 // addRef adds the location where an identifier is referenced.
@@ -406,7 +404,7 @@ func addRef(v visitor, qualifier string, id *ast.Ident) {
 		return
 	}
 	if pkg := aliases[qualifier]; pkg != "" {
-		add(refs, pkg+"."+id.Name, v.path(id))
+		refs.Add(pkg+"."+id.Name, v.path(id))
 	}
 }
 

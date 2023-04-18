@@ -24,6 +24,16 @@ var (
 	cwd, _ = os.Getwd()
 )
 
+// canonicalize value/reference types to same name to sort together.
+func canonicalize(node string, _ table) string {
+	return strings.Trim(node, "*()")
+}
+
+// display the tree node based on recursion depth.
+func display(depth int, node string, _ table) {
+	fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", depth), node)
+}
+
 // main
 func main() {
 	gocore.Main(Main)
@@ -46,11 +56,11 @@ func Main(ctx context.Context) error {
 		return gocore.Error("WalkDir", fmt.Errorf("%q %w", cwd, err))
 	}
 
-	for _, imp := range sortvals(imps) {
-		for pth := range imp {
+	imps.Traverse(0, nil, canonicalize, func(depth int, node string, _ table) {
+		for pth := range imps[node] {
 			walk(pth)
 		}
-	}
+	})
 
 	defs4refs()
 
@@ -65,7 +75,7 @@ func Main(ctx context.Context) error {
 
 // walk the directory tree and parse the go files.
 func walk(pth string) error {
-	if _, err := subdir(dirimps, pth); err == nil {
+	if _, err := gocore.Subdir(dirimps, pth); err == nil {
 		pth = verspath(pth) // imports include version in path
 	}
 
@@ -117,7 +127,7 @@ func verspath(pth string) string {
 func defs4refs() {
 	for ref, abss := range refs {
 		for abs := range abss { // check if reference is from module
-			if _, err := subdir(dirmod, abs); err != nil {
+			if _, err := gocore.Subdir(dirmod, abs); err != nil {
 				delete(abss, abs) // remove reference
 			}
 		}
@@ -134,7 +144,7 @@ func defs4refs() {
 		} else { // add definition for standard or imported package type
 			pkg, _, _ := strings.Cut(ref, ".")
 			for imp := range imps[pkg] {
-				if _, err := subdir(dirmod, imp); err != nil {
+				if _, err := gocore.Subdir(dirmod, imp); err != nil {
 					for abs := range abss {
 						abss[abs][imp] = tree{}
 					}
@@ -171,7 +181,7 @@ func typesets() {
 				i++
 			}
 			if i == len(mths) {
-				add(sets, ifc, typ)
+				sets.Add(ifc, typ)
 			}
 		}
 	}
@@ -180,41 +190,28 @@ func typesets() {
 // report echos out all of the trees to stderr.
 func report() {
 	fmt.Fprintln(os.Stderr, "==== IMPORTS ====")
-	traverse(imps, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	imps.Traverse(0, nil, canonicalize, display)
 
 	fmt.Fprintln(os.Stderr, "==== INTERFACES ====")
-	traverse(ifcs, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	ifcs.Traverse(0, nil, canonicalize, display)
 
 	fmt.Fprintln(os.Stderr, "==== TYPES ====")
-	traverse(typs, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	typs.Traverse(0, nil, canonicalize, display)
+
 	fmt.Fprintln(os.Stderr, "==== VALUES ====")
-	traverse(vals, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	vals.Traverse(0, nil, canonicalize, display)
+
 	fmt.Fprintln(os.Stderr, "==== FUNCTIONS ====")
-	traverse(fncs, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	fncs.Traverse(0, nil, canonicalize, display)
 
 	fmt.Fprintln(os.Stderr, "==== DEFINES ====")
-	traverse(defs, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	defs.Traverse(0, nil, canonicalize, display)
+
 	fmt.Fprintln(os.Stderr, "==== REFERENCES ====")
-	traverse(refs, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	refs.Traverse(0, nil, canonicalize, display)
 
 	fmt.Fprintln(os.Stderr, "==== TYPES FOR INTERFACES ====")
-	traverse(sets, 0, func(indent int, s string) {
-		fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", indent), s)
-	})
+	sets.Traverse(0, nil, canonicalize, display)
 }
 
 // dot calls the Graphviz dot command to render the package dependencies as SVG.

@@ -164,7 +164,7 @@ func nodegraph(references tree) string {
 		time.Now().Local().Format("Mon Jan 02 2006 at 03:04:05PM MST"),
 	)
 
-	traverse(nodes, 0, func(indent int, s string) {
+	nodes.Traverse(0, nil, canonicalize, func(_ int, s string, _ table) {
 		graph += s[1:]
 	})
 
@@ -175,7 +175,7 @@ func nodegraph(references tree) string {
 		graph += "\"" + gomod + "\" -> \"Imported Packages\" [style=invis ltail=2 lhead=3]\n"
 	}
 
-	traverse(edges, 0, func(indent int, s string) {
+	edges.Traverse(0, nil, canonicalize, func(_ int, s string, _ table) {
 		graph += s
 	})
 
@@ -186,13 +186,13 @@ func nodegraph(references tree) string {
 
 func node(abs string) (byte, string, tree) {
 	for pth, tg := range dirmap {
-		pkg, err := subdir(pth, abs) // get package name
+		pkg, err := gocore.Subdir(pth, abs) // get package name
 		if err != nil {
 			continue
 		}
 
 		// check if module is an imported package; if so skip resolving to imports directory
-		if _, err := subdir(dirmod, abs); err == nil && pth == dirimps {
+		if _, err := gocore.Subdir(dirmod, abs); err == nil && pth == dirimps {
 			continue // ...on to dirmod, which happens to be a subdirectory of dirimps
 		}
 
