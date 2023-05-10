@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go/types"
 	"os"
@@ -18,7 +19,7 @@ type (
 )
 
 func (imp *importr) Import(pth string) (*types.Package, error) {
-	return nil, fmt.Errorf("this importer does not support Import(path), use ImportFrom()")
+	return nil, errors.New("this importer does not support Import(path), use ImportFrom()")
 }
 
 func (imp *importr) ImportFrom(pth, from string, mode types.ImportMode) (*types.Package, error) {
@@ -31,7 +32,7 @@ func (imp *importr) ImportFrom(pth, from string, mode types.ImportMode) (*types.
 	// determine local directory path from import path
 	var dir string
 	if pth == "C" { // the "C" package?
-		return nil, fmt.Errorf("cannot import C package")
+		return nil, errors.New("cannot import C package")
 	} else if _, err := subdir(gomod, pth); err == nil { // module package?
 		dir = path.Join(dirmod, pth)
 	} else if _, err := os.Stat(path.Join(dirstd, pth)); err == nil { // std package?

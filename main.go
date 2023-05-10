@@ -46,14 +46,18 @@ func Main(ctx context.Context) error {
 	} else {
 		module := gocore.Module(cwd)
 		if module.Dir == "" {
-			return gocore.Error("go.mod unresolved", errors.New(cwd))
+			return gocore.Error("go.mod", errors.New("unresolved"), map[string]string{
+				"directory": cwd,
+			})
 		}
 		gomod = module.Path
 		dirmod = module.Dir
 	}
 
 	if err := walk(cwd); err != nil {
-		return gocore.Error("WalkDir", fmt.Errorf("%q %w", cwd, err))
+		return gocore.Error("WalkDir", err, map[string]string{
+			"directory": cwd,
+		})
 	}
 
 	imps.Traverse(0, nil, canonicalize, func(depth int, node string, _ table) {
@@ -223,7 +227,9 @@ func dot(graphviz string) []byte {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		gocore.LogError("dot", fmt.Errorf("%w\n%s", err, stderr.Bytes()))
+		gocore.Error("dot", err, map[string]string{
+			"stderr": stderr.String(),
+		}).Err()
 		sc := bufio.NewScanner(strings.NewReader(graphviz))
 		for i := 1; sc.Scan(); i++ {
 			fmt.Fprintf(os.Stderr, "%4.d %s\n", i, sc.Text())

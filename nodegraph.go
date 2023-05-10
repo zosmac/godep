@@ -92,7 +92,9 @@ func nodegraph(references tree) string {
 			buf := make([]byte, 4096)
 			n := runtime.Stack(buf, false)
 			buf = buf[:n]
-			gocore.LogError("nodegraph", fmt.Errorf("%v\n%s", r, buf))
+			gocore.Error("nodegraph", fmt.Errorf("%v", r), map[string]string{
+				"stacktrace": string(buf),
+			}).Err()
 		}
 	}()
 
