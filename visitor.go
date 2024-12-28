@@ -431,7 +431,7 @@ func typelist(flds *ast.FieldList) string {
 	for _, fld := range flds.List {
 		typ := types.ExprString(fld.Type)
 		typs = append(typs, typ)
-		for i := 1; i < len(fld.Names); i++ {
+		for range len(fld.Names) {
 			typs = append(typs, typ)
 		}
 	}
