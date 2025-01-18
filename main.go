@@ -25,12 +25,12 @@ var (
 )
 
 // canonicalize value/reference types to same name to sort together.
-func canonicalize(node string, _ table) string {
+func canonicalize(node string, _ any) string {
 	return strings.Trim(node, "*()")
 }
 
 // display the tree node based on recursion depth.
-func display(depth int, node string, _ table) {
+func display(depth int, node string, _ any) {
 	fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", depth), node)
 }
 
@@ -60,19 +60,13 @@ func Main(ctx context.Context) error {
 		})
 	}
 
-	imps.Traverse(0, nil, canonicalize, func(depth int, node string, _ table) {
-		for pth := range imps[node] {
-			walk(pth)
-		}
-	})
-
 	defs4refs()
 
 	typesets()
 
 	report()
 
-	os.Stdout.Write(dot(nodegraph(refs)))
+	os.Stdout.Write(dot(nodegraph(trees[REFERENCES])))
 
 	return nil
 }
@@ -129,25 +123,25 @@ func verspath(pth string) string {
 
 // defs4refs adds the definition location for each referenced type, value, or function.
 func defs4refs() {
-	for ref, abss := range refs {
+	for ref, abss := range trees[REFERENCES] {
 		for abs := range abss { // check if reference is from module
 			if _, err := gocore.Subdir(dirmod, abs); err != nil {
 				delete(abss, abs) // remove reference
 			}
 		}
 		if len(abss) == 0 { // skip references only within std and imports
-			delete(refs, ref)
+			delete(trees[REFERENCES], ref)
 			continue
 		}
-		if _, ok := defs[ref]; ok { // check if definition is in the current module
-			for def := range defs[ref] {
+		if _, ok := trees[DEFINES][ref]; ok { // check if definition is in the current module
+			for def := range trees[DEFINES][ref] {
 				for abs := range abss {
 					abss[abs][def] = tree{}
 				}
 			}
 		} else { // add definition for standard or imported package type
 			pkg, _, _ := strings.Cut(ref, ".")
-			for imp := range imps[pkg] {
+			for imp := range trees[IMPORTS][pkg] {
 				if _, err := gocore.Subdir(dirmod, imp); err != nil {
 					for abs := range abss {
 						abss[abs][imp] = tree{}
@@ -155,28 +149,28 @@ func defs4refs() {
 				}
 			}
 		}
-		refs[ref] = abss
+		trees[REFERENCES][ref] = abss
 	}
 }
 
 // typesets finds the interfaces that types implement.
 func typesets() {
 	// expand embedded interfaces with their methods
-	for ifc, mths := range ifcs {
+	for ifc, mths := range trees[INTERFACES] {
 		for mth := range mths {
 			if !strings.Contains(mth, "(") {
 				// embedded interface, replace with its methods
 				delete(mths, mth)
-				for m := range ifcs[mth] {
-					ifcs[ifc][m] = tree{}
+				for m := range trees[INTERFACES][mth] {
+					trees[INTERFACES][ifc][m] = tree{}
 				}
 			}
 		}
 	}
 
 	// for each type, check if it implements the methods of an interface
-	for typ, flds := range typs {
-		for ifc, mths := range ifcs {
+	for typ, flds := range trees[TYPES] {
+		for ifc, mths := range trees[INTERFACES] {
 			i := 0
 			for mth := range mths {
 				if _, ok := flds[mth]; !ok {
@@ -185,7 +179,7 @@ func typesets() {
 				i++
 			}
 			if i == len(mths) {
-				sets.Add(ifc, typ)
+				trees[IMPLEMENTS].Add(ifc, typ)
 			}
 		}
 	}
@@ -193,29 +187,13 @@ func typesets() {
 
 // report echos out all of the trees to stderr.
 func report() {
-	fmt.Fprintln(os.Stderr, "==== IMPORTS ====")
-	imps.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== INTERFACES ====")
-	ifcs.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== TYPES ====")
-	typs.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== VALUES ====")
-	vals.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== FUNCTIONS ====")
-	fncs.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== DEFINES ====")
-	defs.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== REFERENCES ====")
-	refs.Traverse(0, nil, canonicalize, display)
-
-	fmt.Fprintln(os.Stderr, "==== TYPES FOR INTERFACES ====")
-	sets.Traverse(0, nil, canonicalize, display)
+	for i := range len(trees) {
+		fmt.Fprintf(os.Stderr, "==== %s ====\n", names[TREE(i)])
+		// trees[i].Traverse(0, nil, canonicalize, display)
+		for depth, node := range (meta{Tree: trees[i], Order: canonicalize}).All() {
+			display(depth, node, nil)
+		}
+	}
 }
 
 // dot calls the Graphviz dot command to render the package dependencies as SVG.

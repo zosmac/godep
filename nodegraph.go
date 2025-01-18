@@ -166,9 +166,10 @@ func nodegraph(references tree) string {
 		time.Now().Local().Format("Mon Jan 02 2006 at 03:04:05PM MST"),
 	)
 
-	nodes.Traverse(0, nil, canonicalize, func(_ int, s string, _ table) {
+	meta := gocore.Meta[string, any, string]{Tree: nodes, Order: canonicalize}
+	for _, s := range meta.All() {
 		graph += s[1:]
-	})
+	}
 
 	if dirmod == dirstd {
 		graph += "\"Standard Packages\" -> \"Imported Packages\" [style=invis ltail=1 lhead=3]\n"
@@ -177,9 +178,9 @@ func nodegraph(references tree) string {
 		graph += "\"" + gomod + "\" -> \"Imported Packages\" [style=invis ltail=2 lhead=3]\n"
 	}
 
-	edges.Traverse(0, nil, canonicalize, func(_ int, s string, _ table) {
+	for _, s := range (gocore.Meta[string, any, string]{Tree: edges, Order: canonicalize}).All() {
 		graph += s
-	})
+	}
 
 	graph += "\n}\n"
 

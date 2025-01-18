@@ -4,10 +4,10 @@ package main
 
 import (
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"io/fs"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 var (
@@ -22,6 +22,9 @@ var (
 
 	// parseDirs records that a directory has been parsed.
 	parsedDirs = map[string]struct{}{}
+
+	// scannedPkgs records that a package has been scanned.
+	scannedPkgs = map[string]struct{}{}
 )
 
 // parse invokes the go parser and walks the AST.
@@ -37,14 +40,11 @@ func parse(dir string) {
 		}
 	}
 
-	pkgs, err := parser.ParseDir(
-		fileSet,
-		dir,
-		func(filter fs.FileInfo) bool {
-			return true
-		},
-		parser.ParseComments, // read comments for go:build constraints
-	)
+	pkgs, err := packages.Load(&packages.Config{
+		Mode: packages.LoadAllSyntax,
+		Dir:  dir,
+		Fset: fileSet,
+	})
 	if err != nil {
 		return
 	}
@@ -54,11 +54,26 @@ func parse(dir string) {
 			// skip embedded non-API packages
 			continue
 		}
+
+		scan(pkg)
+
+		for _, pkg := range pkg.Imports {
+			scan(pkg)
+		}
+	}
+}
+
+func scan(pkg *packages.Package) {
+	if _, ok := scannedPkgs[pkg.Dir]; ok {
+		return
+	}
+	scannedPkgs[pkg.Dir] = struct{}{}
+	for _, s := range pkg.Syntax {
 		ast.Walk(
 			visitor{
 				pkg: pkg,
 			},
-			pkg,
+			s,
 		)
 	}
 }

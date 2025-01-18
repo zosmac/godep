@@ -13,24 +13,26 @@ import (
 	"strings"
 
 	"github.com/zosmac/gocore"
+	"golang.org/x/tools/go/packages"
 )
 
 type (
 	// visitor employed by the AST walk of the parse function.
 	visitor struct {
-		pkg *ast.Package
+		pkg *packages.Package
 	}
 
-	// table maps tree nodes to their data.
-	table = gocore.Table[string, any]
-
 	// tree organizes information types parsed from packages.
-	tree = gocore.Tree[string, string, any]
+	tree = gocore.Tree[string]
+
+	// meta describes the content and ordering of the tree.
+	meta = gocore.Meta[string, any, string]
 
 	// TREE is the enumberation type for information types parsed from packages.
 	TREE int
 )
 
+// enumeration of each tree type.
 const (
 	IMPORTS TREE = iota
 	INTERFACES
@@ -44,6 +46,18 @@ const (
 )
 
 var (
+	// names of each tree type.
+	names = map[TREE]string{
+		IMPORTS:    "IMPORTS",    // imps tree reports all imported packages.
+		INTERFACES: "INTERFACES", // ifcs tree reports all interfaces.
+		TYPES:      "TYPES",      // typs tree reports all exported types.
+		VALUES:     "VALUES",     // vals tree reports all exported values.
+		FUNCTIONS:  "FUNCTIONS",  // fncs tree reports all exported functions.
+		DEFINES:    "DEFINES",    // defs tree reports where types, values, and functions are defined.
+		REFERENCES: "REFERENCES", // refs tree reports where types, values, and functions are referenced.
+		IMPLEMENTS: "IMPLEMENTS", // sets tree reports interfaces with types whose method sets comply.
+	}
+
 	// dirstd is the location of the Go standard packages source.
 	dirstd = path.Join(build.Default.GOROOT, "src")
 
@@ -64,30 +78,6 @@ var (
 		}
 		return ts
 	}()
-
-	// imps tree reports all imported packages.
-	imps = trees[IMPORTS]
-
-	// ifcs tree reports all interfaces.
-	ifcs = trees[INTERFACES]
-
-	// typs tree reports all exported types.
-	typs = trees[TYPES]
-
-	// vals tree reports all exported values.
-	vals = trees[VALUES]
-
-	// fncs tree reports all exported functions.
-	fncs = trees[FUNCTIONS]
-
-	// defs tree reports where types, values, and functions are defined.
-	defs = trees[DEFINES]
-
-	// refs tree reports where types, values, and functions are referenced.
-	refs = trees[REFERENCES]
-
-	// sets tree reports interfaces with types whose method sets comply.
-	sets = trees[IMPLEMENTS]
 )
 
 // path determines the location of a node.
@@ -142,7 +132,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 
 	// IDENTITY EXPRESSION
 	case *ast.Ident:
-		addRef(v, v.pkg.Name, node)
+		v.addRef(v.pkg.Name, node)
 
 	// LITERAL EXPRESSIONS
 	case *ast.BasicLit,
@@ -171,7 +161,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		*ast.UnaryExpr:
 
 	case *ast.SelectorExpr:
-		addRef(v, types.ExprString(node.X), node.Sel)
+		v.addRef(types.ExprString(node.X), node.Sel)
 
 	case ast.Expr: // put this last after all the explicit expression types
 		panic(fmt.Errorf("unexpected expr type %T %[1]s", node))
@@ -186,10 +176,10 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		addImp(node)
 
 	case *ast.TypeSpec:
-		addTyp(v, node)
+		v.addTyp(node)
 
 	case *ast.ValueSpec:
-		addVal(v, node)
+		v.addVal(node)
 
 	case ast.Spec:
 		panic(fmt.Errorf("unexpected spec type %T %[1]s", node))
@@ -206,7 +196,7 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		aliases = map[string]string{}
 
 	case *ast.FuncDecl:
-		addFnc(v, node)
+		v.addFnc(node)
 
 	case *ast.CommentGroup,
 		*ast.Comment,
@@ -286,34 +276,34 @@ func addImp(node *ast.ImportSpec) {
 		alias = node.Name.Name
 	}
 	aliases[alias] = pkg
-	imps.Add(pkg, abs)
+	trees[IMPORTS].Add(pkg, abs)
 }
 
-// addTyp adds a type to the typs or ifcs list.
-func addTyp(v visitor, node *ast.TypeSpec) {
+// addTyp adds a type to the trees[TYPES] or trees[INTERFACES] list.
+func (v visitor) addTyp(node *ast.TypeSpec) {
 	if !ast.IsExported(node.Name.Name) {
 		return
 	}
-	addDef(v, node.Name)
+	v.addDef(node.Name)
 
 	name := v.pkg.Name + "." + node.Name.Name
 	switch expr := node.Type.(type) {
 	case *ast.InterfaceType:
-		addIfc(v, name, expr)
+		v.addIfc(name, expr)
 	case *ast.StructType:
 		addStr(name, expr)
 	case *ast.CompositeLit:
 		lit := types.ExprString(expr.Type)
 		for _, elt := range expr.Elts {
-			typs.Add(name, lit, types.ExprString(elt))
+			trees[TYPES].Add(name, lit, types.ExprString(elt))
 		}
 	default:
-		typs.Add(name, types.ExprString(expr))
+		trees[TYPES].Add(name, types.ExprString(expr))
 	}
 }
 
 // addIfc adds an interface and its methods to the list of interfaces.
-func addIfc(v visitor, name string, node *ast.InterfaceType) {
+func (v visitor) addIfc(name string, node *ast.InterfaceType) {
 	for _, mth := range node.Methods.List {
 		if len(mth.Names) == 0 {
 			// embedded interface type
@@ -321,10 +311,10 @@ func addIfc(v visitor, name string, node *ast.InterfaceType) {
 			if !strings.Contains(dt, ".") && ast.IsExported(dt) {
 				dt = v.pkg.Name + "." + dt // interface is in this package
 			}
-			ifcs.Add(name, dt)
+			trees[INTERFACES].Add(name, dt)
 		} else {
 			for _, id := range mth.Names {
-				ifcs.Add(name, id.Name+signature(mth.Type.(*ast.FuncType)))
+				trees[INTERFACES].Add(name, id.Name+signature(mth.Type.(*ast.FuncType)))
 			}
 		}
 	}
@@ -351,35 +341,35 @@ func addStr(name string, node *ast.StructType) {
 			line += types.ExprString(expr)
 		}
 		if ast.IsExported(line) {
-			typs.Add(name, line)
+			trees[TYPES].Add(name, line)
 		}
 	}
 }
 
 // addVal adds a value to the list of values.
-func addVal(v visitor, node *ast.ValueSpec) {
+func (v visitor) addVal(node *ast.ValueSpec) {
 	for _, id := range node.Names {
 		if !ast.IsExported(id.Name) {
 			continue
 		}
-		addDef(v, id)
+		v.addDef(id)
 
 		name := v.pkg.Name + "." + id.Name
 		for _, val := range node.Values {
-			vals.Add(name, types.ExprString(val))
+			trees[VALUES].Add(name, types.ExprString(val))
 		}
 	}
 }
 
 // addFnc adds function to the functions list or method to a type in the types list
-func addFnc(v visitor, node *ast.FuncDecl) {
+func (v visitor) addFnc(node *ast.FuncDecl) {
 	if !ast.IsExported(node.Name.Name) {
 		return
 	}
-	addDef(v, node.Name)
+	v.addDef(node.Name)
 
 	if node.Recv == nil || len(node.Recv.List) == 0 {
-		fncs.Add(v.pkg.Name + "." + node.Name.Name + signature(node.Type))
+		trees[FUNCTIONS].Add(v.pkg.Name + "." + node.Name.Name + signature(node.Type))
 	} else {
 		expr := node.Recv.List[0].Type
 		if s, ok := expr.(*ast.StarExpr); ok {
@@ -389,22 +379,22 @@ func addFnc(v visitor, node *ast.FuncDecl) {
 		if !ast.IsExported(name) {
 			return
 		}
-		typs.Add(v.pkg.Name+"."+name, node.Name.Name+signature(node.Type))
+		trees[TYPES].Add(v.pkg.Name+"."+name, node.Name.Name+signature(node.Type))
 	}
 }
 
 // addDef adds the location where an identifier is defined.
-func addDef(v visitor, id *ast.Ident) {
-	defs.Add(v.pkg.Name+"."+id.Name, v.path(id))
+func (v visitor) addDef(id *ast.Ident) {
+	trees[DEFINES].Add(v.pkg.Name+"."+id.Name, v.pkg.Dir)
 }
 
 // addRef adds the location where an identifier is referenced.
-func addRef(v visitor, qualifier string, id *ast.Ident) {
+func (v visitor) addRef(qualifier string, id *ast.Ident) {
 	if !ast.IsExported(id.Name) {
 		return
 	}
 	if pkg := aliases[qualifier]; pkg != "" {
-		refs.Add(pkg+"."+id.Name, v.path(id))
+		trees[REFERENCES].Add(pkg+"."+id.Name, v.pkg.Dir)
 	}
 }
 
