@@ -24,11 +24,6 @@ var (
 	cwd, _ = os.Getwd()
 )
 
-// canonicalize value/reference types to same name to sort together.
-func canonicalize(node string, _ any) string {
-	return strings.Trim(node, "*()")
-}
-
 // display the tree node based on recursion depth.
 func display(depth int, node string, _ any) {
 	fmt.Fprintf(os.Stderr, "%s%s\n", strings.Repeat("\t", depth), node)
@@ -189,8 +184,7 @@ func typesets() {
 func report() {
 	for i := range len(trees) {
 		fmt.Fprintf(os.Stderr, "==== %s ====\n", names[TREE(i)])
-		// trees[i].Traverse(0, nil, canonicalize, display)
-		for depth, node := range (meta{Tree: trees[i], Order: canonicalize}).All() {
+		for depth, node := range (meta{Tree: trees[i]}).All() {
 			display(depth, node, nil)
 		}
 	}

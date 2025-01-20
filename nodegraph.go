@@ -166,8 +166,7 @@ func nodegraph(references tree) string {
 		time.Now().Local().Format("Mon Jan 02 2006 at 03:04:05PM MST"),
 	)
 
-	meta := gocore.Meta[string, any, string]{Tree: nodes, Order: canonicalize}
-	for _, s := range meta.All() {
+	for _, s := range (meta{Tree: nodes}).All() {
 		graph += s[1:]
 	}
 
@@ -178,7 +177,7 @@ func nodegraph(references tree) string {
 		graph += "\"" + gomod + "\" -> \"Imported Packages\" [style=invis ltail=2 lhead=3]\n"
 	}
 
-	for _, s := range (gocore.Meta[string, any, string]{Tree: edges, Order: canonicalize}).All() {
+	for _, s := range (meta{Tree: edges}).All() {
 		graph += s
 	}
 

@@ -80,22 +80,6 @@ var (
 	}()
 )
 
-// path determines the location of a node.
-func (v visitor) path(node ast.Node) string {
-	pth := fileSet.File(node.Pos()).Name()
-	if b, a, ok := strings.Cut(pth, "@"); ok { // strip version
-		if _, a, ok := strings.Cut(a, "/"); ok { // reassemble path
-			pth = path.Join(b, a)
-		} else {
-			pth = b
-		}
-	}
-	if ext := path.Ext(pth); ext == ".go" {
-		pth = path.Dir(pth)
-	}
-	return pth
-}
-
 // Visit evaluates each node of the AST.
 func (v visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil {

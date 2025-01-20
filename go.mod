@@ -3,7 +3,7 @@ module github.com/zosmac/godep
 go 1.23.5
 
 require (
-	github.com/zosmac/gocore v0.0.0-20250118013013-e428aaa87372
+	github.com/zosmac/gocore v0.0.0-20250120014007-e6ad8c367e71
 	golang.org/x/tools v0.29.0
 )
 
