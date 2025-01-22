@@ -13,7 +13,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/zosmac/gocore"
@@ -106,7 +106,7 @@ func verspath(pth string) string {
 					vers = append(vers, a) // versioned directories for package
 				}
 			}
-			sort.Strings(vers)
+			slices.Sort(vers)
 			if len(vers) > 0 { // grab latest version
 				return path.Join(dir, base+"@"+vers[len(vers)-1], rem)
 			}
