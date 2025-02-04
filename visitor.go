@@ -25,9 +25,6 @@ type (
 	// tree organizes information types parsed from packages.
 	tree = gocore.Tree[string]
 
-	// meta describes the content and ordering of the tree.
-	meta = gocore.Meta[string, any, string]
-
 	// TREE is the enumberation type for information types parsed from packages.
 	TREE int
 )

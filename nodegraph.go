@@ -3,6 +3,7 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"hash/fnv"
 	"path"
@@ -166,7 +167,9 @@ func nodegraph(references tree) string {
 		time.Now().Local().Format("Mon Jan 02 2006 at 03:04:05PM MST"),
 	)
 
-	for _, s := range (meta{Tree: nodes}).All() {
+	for _, s := range nodes.SortedFunc(func(a, b string) int {
+		return cmp.Compare(a, b)
+	}) {
 		graph += s[1:]
 	}
 
@@ -177,7 +180,9 @@ func nodegraph(references tree) string {
 		graph += "\"" + gomod + "\" -> \"Imported Packages\" [style=invis ltail=2 lhead=3]\n"
 	}
 
-	for _, s := range (meta{Tree: edges}).All() {
+	for _, s := range edges.SortedFunc(func(a, b string) int {
+		return cmp.Compare(a, b)
+	}) {
 		graph += s
 	}
 
