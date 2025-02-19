@@ -185,7 +185,7 @@ func typesets() {
 func report() {
 	for i := range len(trees) {
 		fmt.Fprintf(os.Stderr, "==== %s ====\n", names[TREE(i)])
-		for depth, node := range trees[i].SortedFunc(func(a, b string) int {
+		for depth, node := range trees[i].Ordered(func(a, b string) int {
 			return cmp.Compare(a, b)
 		}) {
 			display(depth, node, nil)
