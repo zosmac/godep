@@ -31,11 +31,9 @@ func typesPackage(pkg *ast.Package) (*types.Package, *types.Info, error) {
 		InitOrder:  []*types.Initializer{},
 	}
 
-	files := make([]*ast.File, len(pkg.Files))
-	i := 0
+	files := make([]*ast.File, 0, len(pkg.Files))
 	for _, file := range pkg.Files {
-		files[i] = file
-		i++
+		files = append(files, file)
 	}
 	config := &types.Config{
 		// Importer: importer.Default(),
